@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import pandas.api.types as ptypes
 import numpy as np
 import matplotlib.pyplot as plt
 import streamlit as st
@@ -8,6 +9,7 @@ import plotly.express as px
 import statsmodels.api as sm
 import scipy as sp
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from mlxtend.feature_selection import SequentialFeatureSelector as SFS
@@ -64,6 +66,9 @@ def variables_selector(df):
     if not chosen_y:
         st.error('Please select a dependent variable.')
         st.stop()
+    if not ptypes.is_numeric_dtype(df[chosen_y]):
+        st.error('Please select a numeric column for dependent variable.')
+        st.stop()
     
     y = df.loc[:, chosen_y]
     dependent_var_col.write(y.head())
@@ -73,10 +78,29 @@ def variables_selector(df):
     if not chosen_x:
         st.error('Please select at least one independent variable.')
         st.stop()
-    X = df.loc[:, chosen_x]
-    independent_var_col.write(X.head())
+    Z = df.loc[:, chosen_x]
+    independent_var_col.write(Z.head())
 
-    return y, X
+    df = label_encoder(df.loc[:, chosen_x])
+    X = df.loc[:, chosen_x]
+
+    return y, X, df
+
+def label_encoder(df):
+    '''
+        Perform Label Encoding on the categorical columns.
+    '''
+    # Initialize LabelEncoder
+    encoder = LabelEncoder()
+    # Apply to each object column
+    cat_cols = df.select_dtypes(include=['object'])
+    for col in cat_cols:
+        df[col] = encoder.fit_transform(df[col])
+    
+    if not cat_cols.empty:
+        st.write('Label Encoded Features')
+        st.write(df.head())
+    return df
 
 def feature_lr_selector(X):
     '''
@@ -91,17 +115,17 @@ def feature_lr_selector(X):
         st.error('Please select a Linear Algorithm.')
         st.stop()
     if type(lr) != LinearRegression:
-        st.write('Only Linear Regression model selected at this moment. Please try later!')
+        st.write('Only Linear Regression model supported at this moment. Please try again later!')
         st.stop()
 
     error_metric = None
     if type(lr) == LinearRegression:
-      error_metric = error_metric_type.selectbox('Select Residul Metric:', ['neg_root_mean_squared_error', 'neg_mean_absolute_error', 'r2'])
+      error_metric = error_metric_type.selectbox('Select Residual Metric:', ['neg_root_mean_squared_error', 'neg_mean_absolute_error', 'r2'])
       if not error_metric:
           st.error('Please select an error metric.')
           st.stop()
     elif type(lr) == LogisticRegression:
-      error_metric = error_metric_type.selectbox('Select Residul Metric:', ['accuracy', 'precision', 'recall', 'f1'])
+      error_metric = error_metric_type.selectbox('Select Residual Metric:', ['accuracy', 'precision', 'recall', 'f1'])
       if not error_metric:
           st.error('Please select an error metric.')
 
@@ -148,9 +172,11 @@ def scatter_plot(df, independent_columns, dependent_column):
     st.header('Scatter plot of selected features and target:')
     plt.figure(figsize=(12, 6))
     fig = px.scatter(df, x=independent_columns, y=dependent_column, trendline='ols')
+    fig.update_layout(xaxis_title="Independent Variables")
+    fig.update_layout(yaxis_title=dependent_column.name)
     st.plotly_chart(fig, use_container_width=True)
 
-def residual_distribution(test_residuals):
+def residual_distribution(xlabel, test_residuals):
     '''
         Plot the residual distribution.
     '''
@@ -158,12 +184,12 @@ def residual_distribution(test_residuals):
     plt.figure(figsize=(12, 6))
     fig1, axes = plt.subplots()
     sns.histplot(test_residuals, bins=20, kde=True, ax=axes)
-    plt.xlabel('Sales')
+    plt.xlabel(xlabel)
     plt.ylabel('Residuals')
     plt.title('Residual Distribution')
     st.pyplot(fig1)
 
-def residual_plot(df, y_test, test_residuals):
+def residual_plot(df, xlabel, y_test, test_residuals):
     '''
         Plot the residual plot.
     '''
@@ -172,7 +198,7 @@ def residual_plot(df, y_test, test_residuals):
     fig2, axes = plt.subplots()
     sns.scatterplot(data=df, x=y_test, y=test_residuals)
     plt.axhline(y=0, color='r', linestyle='--')
-    plt.xlabel('Actual values')
+    plt.xlabel(xlabel)
     plt.ylabel('Residuals')
     plt.title('Residual plot')
     st.pyplot(fig2)
@@ -208,8 +234,8 @@ def make_plots(df, X, y, y_test, sfs_metrics, test_residuals):
     '''
     plot_sfs_metrics(sfs_metrics)
     scatter_plot(df, X.columns, y)
-    residual_distribution(test_residuals)
-    residual_plot(df, y_test, test_residuals)
+    residual_distribution(y.name, test_residuals)
+    residual_plot(df, y.name, y_test, test_residuals)
     probability_plot(test_residuals)
 
 def main():
@@ -218,7 +244,8 @@ def main():
     '''
     file_url = load_csv_file()
     df = load_data(file_url)
-    y, X = variables_selector(df)
+    y, X, df = variables_selector(df)
+    # X = ohe_encoder(X)
     lr, error_metric, k = feature_lr_selector(X)
     sfs_metrics = compute_sfs(lr, error_metric, k, X, y)
     y_test, test_residuals = linear_regression(df, X.columns, y)
