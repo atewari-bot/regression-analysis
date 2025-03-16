@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import streamlit as st
 import seaborn as sns
 import plotly.express as px
+import plotly.graph_objects as go
 import statsmodels.api as sm
 import scipy as sp
 from sklearn.model_selection import train_test_split
@@ -30,8 +31,8 @@ def load_csv_file():
     # if 'selected_options' not in st.session_state:  
     #     st.session_state.selected_options = []
 
-    selected_file_url_option = st.multiselect('Choose a Dataset:', files, default=default_file_selection)
-    
+    selected_file_url_option = st.selectbox('Choose a Dataset:', files, index=files.index(default_file_selection[0]))
+
     # Detect if a selection has been removed
     # removed_option = None
     # if len(st.session_state.selected_options) > len(selected_file_url_option):
@@ -40,10 +41,10 @@ def load_csv_file():
     # Update the session state with the new selections
     # st.session_state.selected_options = selected_file_url_option
 
-    if len(selected_file_url_option) == 0 or '.csv' not in selected_file_url_option[0]:
+    if '.csv' not in selected_file_url_option:
         st.error('Please provide a valid CSV file path.')
         st.stop()
-    return 'data/' + selected_file_url_option[0]
+    return 'data/' + selected_file_url_option
   
 @st.cache_data
 def load_data(file_url):
@@ -172,6 +173,8 @@ def scatter_plot(df, independent_columns, dependent_column):
     st.header('Scatter plot of selected features and target:')
     plt.figure(figsize=(12, 6))
     fig = px.scatter(df, x=independent_columns, y=dependent_column, trendline='ols')
+
+    # Update the layout
     fig.update_layout(xaxis_title="Independent Variables")
     fig.update_layout(yaxis_title=dependent_column.name)
     st.plotly_chart(fig, use_container_width=True)
@@ -180,6 +183,7 @@ def residual_distribution(xlabel, test_residuals):
     '''
         Plot the residual distribution.
     '''
+    
     st.header('Residual Distribution Plot:')
     plt.figure(figsize=(12, 6))
     fig1, axes = plt.subplots()
@@ -193,7 +197,8 @@ def residual_plot(df, xlabel, y_test, test_residuals):
     '''
         Plot the residual plot.
     '''
-    st.header('Residual plot:')
+    get_residuals_md()
+
     plt.figure(figsize=(12, 6))
     fig2, axes = plt.subplots()
     sns.scatterplot(data=df, x=y_test, y=test_residuals)
@@ -203,9 +208,47 @@ def residual_plot(df, xlabel, y_test, test_residuals):
     plt.title('Residual plot')
     st.pyplot(fig2)
 
+def get_residuals_md():
+    '''
+        Get the residuals plot markdown.
+    '''
+    st.header('Residual plot:')
+    st.subheader("What is a Residual Plot?")
+    st.markdown("""
+    - A residual plot is a graphical representation that shows the difference (residuals) between the observed values and the predicted values in a regression model. 
+    - Residual = Observed Value - Predicted Value
+        - ✔ If residuals are randomly spread around zero, the regression model is likely valid.
+	    - ❌ If residuals show a clear pattern, the model may need a transformation or non-linear approach.
+    """)
+
+    st.subheader("How to Interpret a Residual Plot?")
+    st.markdown("""
+        - ✅ Good Model (Random Residuals)
+            - Residuals are randomly scattered around zero.
+            - No visible pattern → Linear regression is appropriate.
+
+        - ⚠️ Bad Model (Patterned Residuals)
+            - Curved Shape → The relationship might be non-linear.
+            - Funnel Shape (Heteroscedasticity) → Variance of residuals increases/decreases.
+            - Clusters or Outliers → Model may be biased or missing key predictors.
+    """)
+
 def probability_plot(test_residuals):
     '''
         Plot the probability plot for residuals.
+    '''
+    get_probability_plot_md()
+    
+    plt.figure(figsize=(12, 6))
+    fig3, axes = plt.subplots(figsize=(6, 8), dpi=100)
+    # probplot returns the raw values if needed
+    _ = sp.stats.probplot(test_residuals, plot=axes)
+    plt.title('Probability Plot')
+    st.pyplot(fig3)
+
+def get_probability_plot_md():
+    '''
+        Get the probability plot markdown.
     '''
     st.header('Probability Plot for Residuals (Q-Q Plot):')
     st.subheader("Why Use a Probability Plot for Residuals?")
@@ -221,12 +264,6 @@ def probability_plot(test_residuals):
     - S-Shaped Curve → Skewed residuals (left or right). ❌
     - Extreme Deviations at Ends → Heavy tails (outliers). ❌
     """)
-    plt.figure(figsize=(12, 6))
-    fig3, axes = plt.subplots(figsize=(6, 8), dpi=100)
-    # probplot returns the raw values if needed
-    _ = sp.stats.probplot(test_residuals, plot=axes)
-    plt.title('Probability Plot')
-    st.pyplot(fig3)
 
 def make_plots(df, X, y, y_test, sfs_metrics, test_residuals):
     '''
