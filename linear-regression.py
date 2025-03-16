@@ -260,7 +260,7 @@ def get_residuals_md():
     - A residual plot is a graphical representation that shows the difference (residuals) between the observed values and the predicted values in a regression model. 
     - Residual = Observed Value - Predicted Value
         - ✔ If residuals are randomly spread around zero, the regression model is likely valid.
-	    - ❌ If residuals show a clear pattern, the model may need a transformation or non-linear approach.
+      - ❌ If residuals show a clear pattern, the model may need a transformation or non-linear approach.
     """)
 
     st.subheader("How to Interpret a Residual Plot?")
