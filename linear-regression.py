@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,18 +16,46 @@ from mlxtend.plotting import plot_sequential_feature_selection as plot_sfs
 st.title('Linear Regression Analysis')
 
 def load_csv_file():
-  file_url = st.text_input('Dataset File Path:')
-  if '.csv' not in file_url:
-      st.error('Please provide a valid CSV file path.')
-      st.stop()
-  return file_url
+    '''
+        Load a CSV file from the local directory.
+    '''
+    directory_path = os.getcwd()
+    target_dir = os.path.join(directory_path, "data")
+    files = [f for f in os.listdir(target_dir) if os.path.isfile(os.path.join(target_dir, f))]
+    default_file_selection = ['Advertising.csv']
 
+    # Store the previous selected options (in a session state)
+    # if 'selected_options' not in st.session_state:  
+    #     st.session_state.selected_options = []
+
+    selected_file_url_option = st.multiselect('Choose a Dataset:', files, default=default_file_selection)
+    
+    # Detect if a selection has been removed
+    # removed_option = None
+    # if len(st.session_state.selected_options) > len(selected_file_url_option):
+    #     # Compare the previous and current selections to find the removed option
+    #     removed_option = list(set(st.session_state.selected_options) - set(selected_file_url_option))[0]
+    # Update the session state with the new selections
+    # st.session_state.selected_options = selected_file_url_option
+
+    if len(selected_file_url_option) == 0 or '.csv' not in selected_file_url_option[0]:
+        st.error('Please provide a valid CSV file path.')
+        st.stop()
+    return 'data/' + selected_file_url_option[0]
+  
 @st.cache_data
-def load_data(file_url='data/advertising.csv'):
+def load_data(file_url):
+    '''
+        Load the dataset to DataFrame from the provided file path.
+    '''
+    st.write('Loaded Dataset: ', file_url.split('/')[-1])
     df = pd.read_csv(file_url)
     return df
 
 def variables_selector(df):
+    '''
+        Define multi selector for  dependent and independent variables.
+    '''
     # Create 2 column layout
     dependent_var_col, independent_var_col = st.columns(2)
 
@@ -50,6 +79,9 @@ def variables_selector(df):
     return y, X
 
 def feature_lr_selector(X):
+    '''
+        Select the number of features, linear regression algorithm and error metric.
+    '''
     features, linear_algo_type, error_metric_type = st.columns(3)
     k = features.slider('Select number of features:', min_value=0, max_value=X.shape[1], value=X.shape[1])
     
@@ -76,6 +108,9 @@ def feature_lr_selector(X):
     return lr, error_metric, k
 
 def compute_sfs(lr, error_metric, k, X, y):
+    '''
+        Compute Sequential Forward Selection (SFS) metrics.
+    '''
     sfs = SFS(lr, k_features=k, forward=True, scoring=error_metric, cv=2)
     sfs = sfs.fit(X, y)
 
@@ -85,12 +120,18 @@ def compute_sfs(lr, error_metric, k, X, y):
     return sfs_metrics
   
 def plot_sfs_metrics(sfs_metrics):
+    '''
+        Plot the Sequential Forward Selection (SFS) metrics.
+    '''
     st.header('Relevant Sequential Forward Selection (SFS) metrics:')
     st.write(sfs_metrics.iloc[-1, 3])
     st.line_chart(data=sfs_metrics, y='avg_score')
     st.write(sfs_metrics)
 
 def linear_regression(df, independent_columns, dependent_column):
+    '''
+        Perform Linear Regression and return the test residuals.
+    '''
     X = df[independent_columns]
     y = dependent_column
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=101)
@@ -101,12 +142,18 @@ def linear_regression(df, independent_columns, dependent_column):
     return y_test, test_residuals
 
 def scatter_plot(df, independent_columns, dependent_column):
+    '''
+        Plot the scatter plot of selected features and target.
+    '''
     st.header('Scatter plot of selected features and target:')
     plt.figure(figsize=(12, 6))
     fig = px.scatter(df, x=independent_columns, y=dependent_column, trendline='ols')
     st.plotly_chart(fig, use_container_width=True)
 
 def residual_distribution(test_residuals):
+    '''
+        Plot the residual distribution.
+    '''
     st.header('Residual Distribution Plot:')
     plt.figure(figsize=(12, 6))
     fig1, axes = plt.subplots()
@@ -117,6 +164,9 @@ def residual_distribution(test_residuals):
     st.pyplot(fig1)
 
 def residual_plot(df, y_test, test_residuals):
+    '''
+        Plot the residual plot.
+    '''
     st.header('Residual plot:')
     plt.figure(figsize=(12, 6))
     fig2, axes = plt.subplots()
@@ -128,6 +178,9 @@ def residual_plot(df, y_test, test_residuals):
     st.pyplot(fig2)
 
 def probability_plot(test_residuals):
+    '''
+        Plot the probability plot for residuals.
+    '''
     st.header('Probability Plot for Residuals (Q-Q Plot):')
     st.subheader("Why Use a Probability Plot for Residuals?")
     st.markdown("""
@@ -149,16 +202,27 @@ def probability_plot(test_residuals):
     plt.title('Probability Plot')
     st.pyplot(fig3)
 
-file_url = load_csv_file()
-df = load_data(file_url)
-y, X = variables_selector(df)
-lr, error_metric, k = feature_lr_selector(X)
-sfs_metrics = compute_sfs(lr, error_metric, k, X, y)
-plot_sfs_metrics(sfs_metrics)
-y_test, test_residuals = linear_regression(df, X.columns, y)
-scatter_plot(df, X.columns, y)
-residual_distribution(test_residuals)
-residual_plot(df, y_test, test_residuals)
-probability_plot(test_residuals)
+def make_plots(df, X, y, y_test, sfs_metrics, test_residuals):
+    '''
+        Make all the plots.
+    '''
+    plot_sfs_metrics(sfs_metrics)
+    scatter_plot(df, X.columns, y)
+    residual_distribution(test_residuals)
+    residual_plot(df, y_test, test_residuals)
+    probability_plot(test_residuals)
 
+def main():
+    '''
+        Main function to run the linear regression analysis.
+    '''
+    file_url = load_csv_file()
+    df = load_data(file_url)
+    y, X = variables_selector(df)
+    lr, error_metric, k = feature_lr_selector(X)
+    sfs_metrics = compute_sfs(lr, error_metric, k, X, y)
+    y_test, test_residuals = linear_regression(df, X.columns, y)
+    make_plots(df, X, y, y_test, sfs_metrics, test_residuals)
 
+if __name__ == '__main__':
+    main()
