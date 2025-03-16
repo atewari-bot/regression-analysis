@@ -55,6 +55,48 @@ def load_data(file_url):
     df = pd.read_csv(file_url)
     return df
 
+def data_imputer(df):
+    '''
+        Perform data imputation on the missing values.
+    '''
+    # Check for missing values
+    missing_values = df.isnull().sum()
+    if missing_values.sum() > 0:
+        st.write('Missing Values in the dataset')
+        st.write(missing_values)
+
+        chosen_imputer = st.selectbox('Select imputation technique:', ['mean', 'median', 'mode'])
+        if not chosen_imputer:
+            st.error('Please select an imputation techinque.')
+            st.stop()
+
+        numeric_cols = df.select_dtypes(include=['number']).columns
+        object_cols = df.select_dtypes(include=['object']).columns
+
+        if chosen_imputer == 'mean':
+            st.header('Imputing missing values with mean...')
+            for col in numeric_cols:
+                df[col] = df[col].fillna(df[col].mean())
+        elif chosen_imputer == 'median':
+            st.header('Imputing missing values with median...')
+            for col in numeric_cols:
+                df[col] = df[col].fillna(df[col].median())
+        elif chosen_imputer == 'mode':
+            st.header('Imputing missing values with mode...')
+            for col in df.columns:
+                df[col] = df[col].fillna(df[col].mode()[0])
+
+        imputation_success, imputation_failure = st.columns(2)
+        if len(numeric_cols) > 0:
+            with imputation_success:
+                st.write('Missing values imputed successfully for columns')
+                st.write(df[numeric_cols].head())
+        if len(object_cols) > 0:
+            with imputation_failure:
+                st.write('Missing values imputation failed for columns')
+                st.write(df[object_cols].head())
+    return df
+
 def variables_selector(df):
     '''
         Define multi selector for  dependent and independent variables.
@@ -238,7 +280,7 @@ def probability_plot(test_residuals):
         Plot the probability plot for residuals.
     '''
     get_probability_plot_md()
-    
+
     plt.figure(figsize=(12, 6))
     fig3, axes = plt.subplots(figsize=(6, 8), dpi=100)
     # probplot returns the raw values if needed
@@ -281,8 +323,8 @@ def main():
     '''
     file_url = load_csv_file()
     df = load_data(file_url)
+    df = data_imputer(df)
     y, X, df = variables_selector(df)
-    # X = ohe_encoder(X)
     lr, error_metric, k = feature_lr_selector(X)
     sfs_metrics = compute_sfs(lr, error_metric, k, X, y)
     y_test, test_residuals = linear_regression(df, X.columns, y)
