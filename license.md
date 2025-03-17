@@ -4,7 +4,7 @@ All code contributed to <a href = "https://github.com/atewari-bot">atewari-bot</
 
 When using the code from <a href = "https://github.com/atewari-bot">atewari-bot</a>, please credit as follows: 
 
-`Code sourced from <a href = "https://github.com/atewari-bot">atewari-bot</a>, authored by Ajay Tewari, 2025.`
+`Code sourced from atewari-bot, authored by Ajay Tewari, 2025.`
 
 # Contact
 
