@@ -7,4 +7,4 @@ scikit-learn
 scipy
 mlxtend
 statsmodels
-plotly
+plotlystreamlit

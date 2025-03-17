@@ -27,19 +27,7 @@ def load_csv_file():
     files = [f for f in os.listdir(target_dir) if os.path.isfile(os.path.join(target_dir, f))]
     default_file_selection = ['Advertising.csv']
 
-    # Store the previous selected options (in a session state)
-    # if 'selected_options' not in st.session_state:  
-    #     st.session_state.selected_options = []
-
     selected_file_url_option = st.selectbox('Choose a Dataset:', files, index=files.index(default_file_selection[0]))
-
-    # Detect if a selection has been removed
-    # removed_option = None
-    # if len(st.session_state.selected_options) > len(selected_file_url_option):
-    #     # Compare the previous and current selections to find the removed option
-    #     removed_option = list(set(st.session_state.selected_options) - set(selected_file_url_option))[0]
-    # Update the session state with the new selections
-    # st.session_state.selected_options = selected_file_url_option
 
     if '.csv' not in selected_file_url_option:
         st.error('Please provide a valid CSV file path.')
@@ -222,8 +210,11 @@ def scatter_plot(df, independent_columns, dependent_column):
     fig = px.scatter(df, x=independent_columns, y=dependent_column, trendline='ols')
 
     # Update the layout
-    fig.update_layout(xaxis_title="Independent Variables")
+    fig.update_layout(xaxis_title="Feature Variables")
     fig.update_layout(yaxis_title=dependent_column.name)
+    fig.update_layout(legend=dict(
+        title="Features"
+    ))
     st.plotly_chart(fig, use_container_width=True)
 
 def residual_distribution(xlabel, test_residuals):
