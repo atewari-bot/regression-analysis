@@ -72,26 +72,31 @@ def data_imputer(df):
 
         numeric_cols = df.select_dtypes(include=['number']).columns
         object_cols = df.select_dtypes(include=['object']).columns
+        imputation_count = 0
 
         if chosen_imputer == 'mean':
             st.header('Imputing missing values with mean...')
             for col in numeric_cols:
                 df[col] = df[col].fillna(df[col].mean())
+                imputation_count += 1
         elif chosen_imputer == 'median':
             st.header('Imputing missing values with median...')
             for col in numeric_cols:
                 df[col] = df[col].fillna(df[col].median())
+                imputation_count += 1
         elif chosen_imputer == 'mode':
             st.header('Imputing missing values with mode...')
             for col in df.columns:
                 df[col] = df[col].fillna(df[col].mode()[0])
+                imputation_count += 1
 
         imputation_success, imputation_failure = st.columns(2)
-        if len(numeric_cols) > 0:
-            with imputation_success:
-                st.write('Missing values imputed successfully for columns')
-                st.write(df[numeric_cols].head())
-        if len(object_cols) > 0:
+
+        with imputation_success:
+            st.write('Missing values imputed successfully for columns')
+            st.write(df[numeric_cols].head())
+
+        if len(df.columns) != imputation_count:
             with imputation_failure:
                 st.write('Missing values imputation failed for columns')
                 st.write(df[object_cols].head())
