@@ -167,11 +167,11 @@ def feature_lr_selector(X):
 
     return lr, error_metric, k
 
-def compute_sfs(lr, error_metric, k, X, y):
+def compute_sfs(lr, cv, error_metric, k, X, y):
     '''
         Compute Sequential Forward Selection (SFS) metrics.
     '''
-    sfs = SFS(lr, k_features=k, forward=True, scoring=error_metric, cv=2)
+    sfs = SFS(lr, k_features=k, forward=True, scoring=error_metric, cv=cv)
     sfs = sfs.fit(X, y)
 
     # SFS metrics 
@@ -303,28 +303,62 @@ def get_probability_plot_md():
     - Extreme Deviations at Ends → Heavy tails (outliers). ❌
     """)
 
-def make_plots(df, X, y, y_test, sfs_metrics, test_residuals):
+def make_plots(df, X, y, y_test, sfs_metrics, test_residuals, plot_flags):
     '''
         Make all the plots.
     '''
     plot_sfs_metrics(sfs_metrics)
     scatter_plot(df, X.columns, y)
-    residual_distribution(y.name, test_residuals)
-    residual_plot(df, y.name, y_test, test_residuals)
-    probability_plot(test_residuals)
 
+    if plot_flags[2]:
+        residual_distribution(y.name, test_residuals)
+    if plot_flags[0]:
+        residual_plot(df, y.name, y_test, test_residuals)
+    if plot_flags[1]:
+        probability_plot(test_residuals)
+
+def build_sidebar():
+    '''
+        Sidebar for the application.
+    '''
+    st.sidebar.title('Linear Regression Analysis')
+    st.sidebar.subheader('About')
+    st.sidebar.markdown("""
+        This application performs Linear Regression analysis on the selected dataset.
+    """)
+
+    st.sidebar.subheader('Author')
+    st.sidebar.markdown("""
+        [Ajay Tewari](https://www.linkedin.com/in/ajaytewari/)
+        """)
+    
+    with st.sidebar:
+        st.header("Customize Analysis")
+        file_url = load_csv_file()
+        df = load_data(file_url)
+        cv = st.number_input("Enter cross validation value:", min_value=0, max_value=10, value=2, step=1)
+        if cv == 1:
+            st.error('Cross validation value should not be 1.')
+
+        show_residual_plot = st.checkbox("Show Residual Plot", value=False)
+        show_prob_plot = st.checkbox("Show Probability Plot", value=False)
+        show_res_dist_plot = st.checkbox("Show Residual Distribution Plot", value=False)
+        return df, cv, [show_residual_plot, show_prob_plot, show_res_dist_plot]
+        
 def main():
     '''
         Main function to run the linear regression analysis.
     '''
-    file_url = load_csv_file()
-    df = load_data(file_url)
+    df, cv, plot_flags = build_sidebar()
     df = data_imputer(df)
     y, X, df = variables_selector(df)
     lr, error_metric, k = feature_lr_selector(X)
-    sfs_metrics = compute_sfs(lr, error_metric, k, X, y)
+    sfs_metrics = compute_sfs(lr, cv, error_metric, k, X, y)
     y_test, test_residuals = linear_regression(df, X.columns, y)
-    make_plots(df, X, y, y_test, sfs_metrics, test_residuals)
+    make_plots(df, X, y, y_test, sfs_metrics, test_residuals, plot_flags)
 
 if __name__ == '__main__':
+    '''
+        Run the main function.
+    '''
     main()
