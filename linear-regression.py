@@ -338,11 +338,6 @@ def build_sidebar():
     st.sidebar.markdown("""
         This application performs Linear Regression analysis on the selected dataset.
     """)
-
-    st.sidebar.subheader('Author')
-    st.sidebar.markdown("""
-        [Ajay Tewari](https://www.linkedin.com/in/ajaytewari/)
-        """)
     
     with st.sidebar:
         st.header("Customize Analysis")
