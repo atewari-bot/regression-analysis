@@ -365,7 +365,4 @@ def main():
     make_plots(df, X, y, y_test, sfs_metrics, selected_sfs_metric, test_residuals, plot_flags)
 
 if __name__ == '__main__':
-    '''
-        Run the main function.
-    '''
     main()
