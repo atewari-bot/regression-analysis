@@ -47,10 +47,11 @@ def data_imputer(df):
         Perform data imputation on the missing values.
     '''
     # Check for missing values
-    missing_values = df.isnull().sum()
-    if missing_values.sum() > 0:
+    missing_values_df = find_missing_values_percentage(df)
+
+    if missing_values_df.shape[0] > 0:
         st.write('Missing Values in the dataset')
-        st.write(missing_values)
+        st.write(missing_values_df)
 
         chosen_imputer = st.selectbox('Select imputation technique:', ['mean', 'median', 'mode'])
         if not chosen_imputer:
@@ -97,7 +98,7 @@ def variables_selector(df):
     dependent_var_col, independent_var_col = st.columns(2)
 
     # Dependent variable selector
-    chosen_y = dependent_var_col.selectbox('Select a dependent variable:', df.columns)
+    chosen_y = dependent_var_col.selectbox('Select a dependent variable', df.columns)
     if not chosen_y:
         st.error('Please select a dependent variable.')
         st.stop()
@@ -109,7 +110,7 @@ def variables_selector(df):
     dependent_var_col.write(y.head())
 
     # Independent variable selector
-    chosen_x = independent_var_col.multiselect('Select independent variables:', df.drop(chosen_y, axis=1).columns)
+    chosen_x = independent_var_col.multiselect('Select independent variables', df.drop(chosen_y, axis=1).columns)
     if not chosen_x:
         st.error('Please select at least one independent variable.')
         st.stop()
@@ -142,9 +143,9 @@ def feature_lr_selector(X):
         Select the number of features, linear regression algorithm and error metric.
     '''
     features, linear_algo_type, error_metric_type = st.columns(3)
-    k = features.slider('Select number of features:', min_value=0, max_value=X.shape[1], value=X.shape[1])
+    k = features.slider('Select number of features', min_value=0, max_value=X.shape[1], value=X.shape[1])
     
-    linear_algo = linear_algo_type.selectbox('Select a linear algorithm:', ['regression', 'classification'])
+    linear_algo = linear_algo_type.selectbox('Select a linear algorithm', ['regression', 'classification'])
     lr = LinearRegression() if linear_algo == 'regression' else LogisticRegression()
     if not lr:
         st.error('Please select a Linear Algorithm.')
@@ -155,12 +156,12 @@ def feature_lr_selector(X):
 
     error_metric = None
     if type(lr) == LinearRegression:
-      error_metric = error_metric_type.selectbox('Select Residual Metric:', ['neg_root_mean_squared_error', 'neg_mean_absolute_error', 'r2'])
+      error_metric = error_metric_type.selectbox('Select Residual Metric', ['neg_root_mean_squared_error', 'neg_mean_absolute_error', 'r2'])
       if not error_metric:
           st.error('Please select an error metric.')
           st.stop()
     elif type(lr) == LogisticRegression:
-      error_metric = error_metric_type.selectbox('Select Residual Metric:', ['accuracy', 'precision', 'recall', 'f1'])
+      error_metric = error_metric_type.selectbox('Select Residual Metric', ['accuracy', 'precision', 'recall', 'f1'])
       if not error_metric:
           st.error('Please select an error metric.')
 
@@ -206,7 +207,7 @@ def scatter_plot(df, independent_columns, dependent_column):
     '''
         Plot the scatter plot of selected features and target.
     '''
-    st.header('Scatter plot of selected features and target:')
+    st.header('Scatter plot of selected features and target')
     plt.figure(figsize=(12, 6))
     fig = px.scatter(df, x=independent_columns, y=dependent_column, trendline='ols')
 
@@ -223,7 +224,7 @@ def residual_distribution(xlabel, test_residuals):
         Plot the residual distribution.
     '''
     
-    st.header('Residual Distribution Plot:')
+    st.header('Residual Distribution Plot')
     plt.figure(figsize=(12, 6))
     fig1, axes = plt.subplots()
     sns.histplot(test_residuals, bins=20, kde=True, ax=axes)
@@ -251,7 +252,7 @@ def get_residuals_md():
     '''
         Get the residuals plot markdown.
     '''
-    st.header('Residual plot:')
+    st.header('Residual plot')
     st.subheader("What is a Residual Plot?")
     st.markdown("""
     - A residual plot is a graphical representation that shows the difference (residuals) between the observed values and the predicted values in a regression model. 
@@ -289,7 +290,7 @@ def get_probability_plot_md():
     '''
         Get the probability plot markdown.
     '''
-    st.header('Probability Plot for Residuals (Q-Q Plot):')
+    st.header('Probability Plot for Residuals (Q-Q Plot)')
     st.subheader("Why Use a Probability Plot for Residuals?")
     st.markdown("""
     - Identifies normality: If residuals are normally distributed, they should lie along a straight diagonal line in the Q-Q plot.
@@ -322,7 +323,7 @@ def sfs_metrics_selector():
     '''
         Select the Sequential Forward Selection (SFS) metrics.
     '''
-    selected_sfs_metrics = st.selectbox('Choose SFS Metrics:', ['avg_score', 'ci_bound', 'std_dev', 'std_err'])
+    selected_sfs_metrics = st.selectbox('Choose SFS Metrics', ['avg_score', 'ci_bound', 'std_dev', 'std_err'])
 
     if not selected_sfs_metrics:
         st.error('Please select a valid SFS metrics.')
@@ -343,7 +344,7 @@ def build_sidebar():
         st.header("Customize Analysis")
         file_url = load_csv_file()
         df = load_data(file_url)
-        cv = st.number_input("Enter cross validation value:", min_value=0, max_value=10, value=2, step=1)
+        cv = st.number_input("Enter cross validation value", min_value=0, max_value=10, value=2, step=1)
         if cv == 1:
             st.error('Cross validation value should not be 1.')
 
@@ -351,7 +352,18 @@ def build_sidebar():
         show_prob_plot = st.checkbox("Show Probability Plot", value=False)
         show_res_dist_plot = st.checkbox("Show Residual Distribution Plot", value=False)
         return df, cv, sfs_metrics_selector(), [show_residual_plot, show_prob_plot, show_res_dist_plot]
-        
+
+def find_missing_values_percentage(df):
+    '''
+        Find the percentage of missing values for the columns.
+    '''
+    missing_values_all = df.isna().sum()
+    missing_values = missing_values_all[missing_values_all > 0]
+    missing_values_percentage = np.round((missing_values / df.shape[0]) * 100, 2)
+    missing_values_percentage = missing_values_percentage.sort_values(ascending=False)
+    missing_values_df = pd.DataFrame(missing_values_percentage, columns=['Missing Values Percentage'])
+    return missing_values_df
+     
 def main():
     '''
         Main function to run the linear regression analysis.
