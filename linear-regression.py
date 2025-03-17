@@ -12,7 +12,6 @@ import scipy as sp
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.linear_model import LinearRegression, LogisticRegression
-from sklearn.metrics import mean_squared_error, mean_absolute_error
 from mlxtend.feature_selection import SequentialFeatureSelector as SFS
 from mlxtend.plotting import plot_sequential_feature_selection as plot_sfs
 
@@ -179,14 +178,16 @@ def compute_sfs(lr, cv, error_metric, k, X, y):
 
     return sfs_metrics
   
-def plot_sfs_metrics(sfs_metrics):
+def plot_sfs_metrics(sfs_metrics, selected_sfs_metric):
     '''
         Plot the Sequential Forward Selection (SFS) metrics.
     '''
-    st.header('Relevant Sequential Forward Selection (SFS) metrics:')
+    st.header('Relevant Sequential Forward Selection (SFS) metrics')
     st.write(sfs_metrics.iloc[-1, 3])
-    st.line_chart(data=sfs_metrics, y='avg_score')
+    plt.figure(figsize=(12, 8))
+    st.line_chart(data=sfs_metrics, y=selected_sfs_metric)
     st.write(sfs_metrics)
+    
 
 def linear_regression(df, independent_columns, dependent_column):
     '''
@@ -303,11 +304,11 @@ def get_probability_plot_md():
     - Extreme Deviations at Ends → Heavy tails (outliers). ❌
     """)
 
-def make_plots(df, X, y, y_test, sfs_metrics, test_residuals, plot_flags):
+def make_plots(df, X, y, y_test, sfs_metrics, selected_sfs_metric, test_residuals, plot_flags):
     '''
         Make all the plots.
     '''
-    plot_sfs_metrics(sfs_metrics)
+    plot_sfs_metrics(sfs_metrics, selected_sfs_metric)
     scatter_plot(df, X.columns, y)
 
     if plot_flags[2]:
@@ -316,6 +317,17 @@ def make_plots(df, X, y, y_test, sfs_metrics, test_residuals, plot_flags):
         residual_plot(df, y.name, y_test, test_residuals)
     if plot_flags[1]:
         probability_plot(test_residuals)
+
+def sfs_metrics_selector():
+    '''
+        Select the Sequential Forward Selection (SFS) metrics.
+    '''
+    selected_sfs_metrics = st.selectbox('Choose SFS Metrics:', ['avg_score', 'ci_bound', 'std_dev', 'std_err'])
+
+    if not selected_sfs_metrics:
+        st.error('Please select a valid SFS metrics.')
+        st.stop()
+    return selected_sfs_metrics
 
 def build_sidebar():
     '''
@@ -343,19 +355,19 @@ def build_sidebar():
         show_residual_plot = st.checkbox("Show Residual Plot", value=False)
         show_prob_plot = st.checkbox("Show Probability Plot", value=False)
         show_res_dist_plot = st.checkbox("Show Residual Distribution Plot", value=False)
-        return df, cv, [show_residual_plot, show_prob_plot, show_res_dist_plot]
+        return df, cv, sfs_metrics_selector(), [show_residual_plot, show_prob_plot, show_res_dist_plot]
         
 def main():
     '''
         Main function to run the linear regression analysis.
     '''
-    df, cv, plot_flags = build_sidebar()
+    df, cv, selected_sfs_metric, plot_flags = build_sidebar()
     df = data_imputer(df)
     y, X, df = variables_selector(df)
     lr, error_metric, k = feature_lr_selector(X)
     sfs_metrics = compute_sfs(lr, cv, error_metric, k, X, y)
     y_test, test_residuals = linear_regression(df, X.columns, y)
-    make_plots(df, X, y, y_test, sfs_metrics, test_residuals, plot_flags)
+    make_plots(df, X, y, y_test, sfs_metrics, selected_sfs_metric, test_residuals, plot_flags)
 
 if __name__ == '__main__':
     '''
