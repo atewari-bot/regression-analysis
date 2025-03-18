@@ -14,7 +14,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from mlxtend.feature_selection import SequentialFeatureSelector as SFS
 from mlxtend.plotting import plot_sequential_feature_selection as plot_sfs
-import selector
+from selector import Selector
 import csv_validation as file_validator
 
 st.title('Regression Analysis')
@@ -52,7 +52,7 @@ def data_imputer(df):
     '''
     if file_validator.has_missing_values(df):
         st.header('Data Imputation')
-        imputation_options = selector.get_imputation_options()
+        imputation_options = Selector.get_imputation_options()
         chosen_imputer_key = st.selectbox('Select imputation technique:', imputation_options.keys())
         chosen_imputer_value = imputation_options[chosen_imputer_key]
         if not chosen_imputer_value:
@@ -146,7 +146,7 @@ def feature_lr_selector(X):
     features, model_algo_type, error_metric_type = st.columns(3)
     k = features.slider('Select number of features', min_value=0, max_value=X.shape[1], value=X.shape[1])
     
-    model_options = selector.get_model_options()
+    model_options = Selector.get_model_options()
     model_algo_key = model_algo_type.selectbox('Select an algorithm', model_options.keys())
     lr = LinearRegression() if model_options[model_algo_key] == 'lr' else LogisticRegression()
     if not lr:
@@ -158,10 +158,10 @@ def feature_lr_selector(X):
 
     error_metric_key = None
     if type(lr) == LinearRegression:
-      error_metric_options = selector.get_lr_error_metrics_options()
+      error_metric_options = Selector.get_lr_error_metrics_options()
       error_metric_key = error_metric_type.selectbox('Select Residual Metric', error_metric_options.keys())
     elif type(lr) == LogisticRegression:
-      error_metric_options = selector.get_lg_error_metrics_options()
+      error_metric_options = Selector.get_lg_error_metrics_options()
       error_metric_key = error_metric_type.selectbox('Select Residual Metric', error_metric_options.keys())
       
     if not error_metric_key:
@@ -327,7 +327,7 @@ def sfs_metrics_selector():
     '''
         Select the Sequential Forward Selection (SFS) metrics.
     '''
-    sfs_metrics_options = selector.get_sfs_metrics_options()
+    sfs_metrics_options = Selector.get_sfs_metrics_options()
     selected_sfs_metrics_key = st.selectbox('Choose SFS Metrics', sfs_metrics_options.keys())
     selected_sfs_metrics = sfs_metrics_options[selected_sfs_metrics_key]
 
