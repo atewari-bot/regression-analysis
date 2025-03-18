@@ -40,3 +40,13 @@ def get_sfs_metrics_options():
         'Standard Deviation': 'std_dev',
         'Standard Error': 'std_err'
     }
+
+def get_imputation_options():
+    '''
+    Returns the list of imputation strategies.
+    '''
+    return {
+        'Mean': 'mean',
+        'Median': 'median',
+        'Mode': 'mode'
+    }

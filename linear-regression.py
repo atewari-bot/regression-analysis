@@ -15,8 +15,9 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 from mlxtend.feature_selection import SequentialFeatureSelector as SFS
 from mlxtend.plotting import plot_sequential_feature_selection as plot_sfs
 import selector
+import csv_validation as file_validator
 
-st.title('Linear Regression Analysis')
+st.title('Regression Analysis')
 
 def load_csv_file():
     '''
@@ -27,12 +28,11 @@ def load_csv_file():
     files = [f for f in os.listdir(target_dir) if os.path.isfile(os.path.join(target_dir, f))]
     default_file_selection = ['Advertising.csv']
 
-    selected_file_url_option = st.selectbox('Choose a Dataset', files, index=files.index(default_file_selection[0]))
+    selected_file = st.selectbox('Choose a Dataset (.csv)', files, index=files.index(default_file_selection[0]))
 
-    if '.csv' not in selected_file_url_option:
-        st.error('Please provide a valid CSV file path.')
-        st.stop()
-    return 'data/' + selected_file_url_option
+    file_validator.validate_file_format(selected_file)
+
+    return 'data/' + selected_file
   
 @st.cache_data
 def load_data(file_url):
@@ -41,21 +41,21 @@ def load_data(file_url):
     '''
     st.write('Loaded Dataset: ', file_url.split('/')[-1])
     df = pd.read_csv(file_url)
+
+    if file_validator.validate_empty_file(df):
+        st.stop()
     return df
 
 def data_imputer(df):
     '''
         Perform data imputation on the missing values.
     '''
-    # Check for missing values
-    missing_values_df = find_missing_values_percentage(df)
-
-    if missing_values_df.shape[0] > 0:
-        st.write('Missing Values in the dataset')
-        st.write(missing_values_df)
-
-        chosen_imputer = st.selectbox('Select imputation technique:', ['mean', 'median', 'mode'])
-        if not chosen_imputer:
+    if file_validator.has_missing_values(df):
+        st.header('Data Imputation')
+        imputation_options = selector.get_imputation_options()
+        chosen_imputer_key = st.selectbox('Select imputation technique:', imputation_options.keys())
+        chosen_imputer_value = imputation_options[chosen_imputer_key]
+        if not chosen_imputer_value:
             st.error('Please select an imputation techinque.')
             st.stop()
 
@@ -63,17 +63,17 @@ def data_imputer(df):
         object_cols = df.select_dtypes(include=['object']).columns
         imputation_count = 0
 
-        if chosen_imputer == 'mean':
+        if chosen_imputer_value == 'mean':
             st.header('Imputing missing values with mean...')
             for col in numeric_cols:
                 df[col] = df[col].fillna(df[col].mean())
                 imputation_count += 1
-        elif chosen_imputer == 'median':
+        elif chosen_imputer_value == 'median':
             st.header('Imputing missing values with median...')
             for col in numeric_cols:
                 df[col] = df[col].fillna(df[col].median())
                 imputation_count += 1
-        elif chosen_imputer == 'mode':
+        elif chosen_imputer_value == 'mode':
             st.header('Imputing missing values with mode...')
             for col in df.columns:
                 df[col] = df[col].fillna(df[col].mode()[0])
@@ -147,10 +147,10 @@ def feature_lr_selector(X):
     k = features.slider('Select number of features', min_value=0, max_value=X.shape[1], value=X.shape[1])
     
     model_options = selector.get_model_options()
-    model_algo_key = model_algo_type.selectbox('Select a linear algorithm', model_options.keys())
+    model_algo_key = model_algo_type.selectbox('Select an algorithm', model_options.keys())
     lr = LinearRegression() if model_options[model_algo_key] == 'lr' else LogisticRegression()
     if not lr:
-        st.error('Please select a Linear Algorithm.')
+        st.error('Please select an Algorithm.')
         st.stop()
     if type(lr) != LinearRegression:
         st.write('Only Linear Regression model supported at this moment. Please try again later!')
@@ -194,9 +194,9 @@ def plot_sfs_metrics(sfs_metrics, selected_sfs_metric):
     st.write(sfs_metrics)
     
 
-def linear_regression(df, independent_columns, dependent_column):
+def regression_analysis(df, independent_columns, dependent_column):
     '''
-        Perform Linear Regression and return the test residuals.
+        Perform Regression analysis and return the test residuals.
     '''
     X = df[independent_columns]
     y = dependent_column
@@ -340,14 +340,14 @@ def build_sidebar():
     '''
         Sidebar for the application.
     '''
-    st.sidebar.title('Linear Regression Analysis')
+    st.sidebar.title('Regression Analysis')
     st.sidebar.subheader('About')
     st.sidebar.markdown("""
-        This application performs Linear Regression analysis on the selected dataset.
+        This application performs Regression analysis on the selected dataset.
     """)
     
     with st.sidebar:
-        st.header("Customize Analysis")
+        st.header("Customize Regression Analysis")
         file_url = load_csv_file()
         df = load_data(file_url)
         cv = st.number_input("Enter cross validation value", min_value=0, max_value=10, value=2, step=1)
@@ -358,28 +358,17 @@ def build_sidebar():
         show_prob_plot = st.checkbox("Show Probability Plot", value=False)
         show_res_dist_plot = st.checkbox("Show Residual Distribution Plot", value=False)
         return df, cv, sfs_metrics_selector(), [show_residual_plot, show_prob_plot, show_res_dist_plot]
-
-def find_missing_values_percentage(df):
-    '''
-        Find the percentage of missing values for the columns.
-    '''
-    missing_values_all = df.isna().sum()
-    missing_values = missing_values_all[missing_values_all > 0]
-    missing_values_percentage = np.round((missing_values / df.shape[0]) * 100, 2)
-    missing_values_percentage = missing_values_percentage.sort_values(ascending=False)
-    missing_values_df = pd.DataFrame(missing_values_percentage, columns=['Missing Values Percentage'])
-    return missing_values_df
      
 def main():
     '''
-        Main function to run the linear regression analysis.
+        Main function to run the regression analysis.
     '''
     df, cv, selected_sfs_metric, plot_flags = build_sidebar()
     df = data_imputer(df)
     y, X, df = variables_selector(df)
     lr, error_metric, k = feature_lr_selector(X)
     sfs_metrics = compute_sfs(lr, cv, error_metric, k, X, y)
-    y_test, test_residuals = linear_regression(df, X.columns, y)
+    y_test, test_residuals = regression_analysis(df, X.columns, y)
     make_plots(df, X, y, y_test, sfs_metrics, selected_sfs_metric, test_residuals, plot_flags)
 
 if __name__ == '__main__':
