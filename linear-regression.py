@@ -14,6 +14,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from mlxtend.feature_selection import SequentialFeatureSelector as SFS
 from mlxtend.plotting import plot_sequential_feature_selection as plot_sfs
+import selector
 
 st.title('Linear Regression Analysis')
 
@@ -26,7 +27,7 @@ def load_csv_file():
     files = [f for f in os.listdir(target_dir) if os.path.isfile(os.path.join(target_dir, f))]
     default_file_selection = ['Advertising.csv']
 
-    selected_file_url_option = st.selectbox('Choose a Dataset:', files, index=files.index(default_file_selection[0]))
+    selected_file_url_option = st.selectbox('Choose a Dataset', files, index=files.index(default_file_selection[0]))
 
     if '.csv' not in selected_file_url_option:
         st.error('Please provide a valid CSV file path.')
@@ -142,11 +143,12 @@ def feature_lr_selector(X):
     '''
         Select the number of features, linear regression algorithm and error metric.
     '''
-    features, linear_algo_type, error_metric_type = st.columns(3)
+    features, model_algo_type, error_metric_type = st.columns(3)
     k = features.slider('Select number of features', min_value=0, max_value=X.shape[1], value=X.shape[1])
     
-    linear_algo = linear_algo_type.selectbox('Select a linear algorithm', ['regression', 'classification'])
-    lr = LinearRegression() if linear_algo == 'regression' else LogisticRegression()
+    model_options = selector.get_model_options()
+    model_algo_key = model_algo_type.selectbox('Select a linear algorithm', model_options.keys())
+    lr = LinearRegression() if model_options[model_algo_key] == 'lr' else LogisticRegression()
     if not lr:
         st.error('Please select a Linear Algorithm.')
         st.stop()
@@ -154,18 +156,20 @@ def feature_lr_selector(X):
         st.write('Only Linear Regression model supported at this moment. Please try again later!')
         st.stop()
 
-    error_metric = None
+    error_metric_key = None
     if type(lr) == LinearRegression:
-      error_metric = error_metric_type.selectbox('Select Residual Metric', ['neg_root_mean_squared_error', 'neg_mean_absolute_error', 'r2'])
-      if not error_metric:
-          st.error('Please select an error metric.')
-          st.stop()
+      error_metric_options = selector.get_lr_error_metrics_options()
+      error_metric_key = error_metric_type.selectbox('Select Residual Metric', error_metric_options.keys())
     elif type(lr) == LogisticRegression:
-      error_metric = error_metric_type.selectbox('Select Residual Metric', ['accuracy', 'precision', 'recall', 'f1'])
-      if not error_metric:
-          st.error('Please select an error metric.')
+      error_metric_options = selector.get_lg_error_metrics_options()
+      error_metric_key = error_metric_type.selectbox('Select Residual Metric', error_metric_options.keys())
+      
+    if not error_metric_key:
+        st.error('Please select an error metric.')
+        st.stop()
+    error_metric_value = error_metric_options[error_metric_key]
 
-    return lr, error_metric, k
+    return lr, error_metric_value, k
 
 def compute_sfs(lr, cv, error_metric, k, X, y):
     '''
@@ -323,7 +327,9 @@ def sfs_metrics_selector():
     '''
         Select the Sequential Forward Selection (SFS) metrics.
     '''
-    selected_sfs_metrics = st.selectbox('Choose SFS Metrics', ['avg_score', 'ci_bound', 'std_dev', 'std_err'])
+    sfs_metrics_options = selector.get_sfs_metrics_options()
+    selected_sfs_metrics_key = st.selectbox('Choose SFS Metrics', sfs_metrics_options.keys())
+    selected_sfs_metrics = sfs_metrics_options[selected_sfs_metrics_key]
 
     if not selected_sfs_metrics:
         st.error('Please select a valid SFS metrics.')
