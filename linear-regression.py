@@ -13,44 +13,17 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from mlxtend.feature_selection import SequentialFeatureSelector as SFS
-from mlxtend.plotting import plot_sequential_feature_selection as plot_sfs
-from selector import Selector
-import csv_validation as file_validator
+from utils.selector import Selector
+from eda.load_data import DAO
 
 st.title('Regression Analysis')
-
-def load_csv_file():
-    '''
-        Load a CSV file from the local directory.
-    '''
-    directory_path = os.getcwd()
-    target_dir = os.path.join(directory_path, "data")
-    files = [f for f in os.listdir(target_dir) if os.path.isfile(os.path.join(target_dir, f))]
-    default_file_selection = ['Advertising.csv']
-
-    selected_file = st.selectbox('Choose a Dataset (.csv)', files, index=files.index(default_file_selection[0]))
-
-    file_validator.validate_file_format(selected_file)
-
-    return 'data/' + selected_file
-  
-@st.cache_data
-def load_data(file_url):
-    '''
-        Load the dataset to DataFrame from the provided file path.
-    '''
-    st.write('Loaded Dataset: ', file_url.split('/')[-1])
-    df = pd.read_csv(file_url)
-
-    if file_validator.validate_empty_file(df):
-        st.stop()
-    return df
+dao = DAO()
 
 def data_imputer(df):
     '''
         Perform data imputation on the missing values.
     '''
-    if file_validator.has_missing_values(df):
+    if dao.validator.has_missing_values(df):
         st.header('Data Imputation')
         imputation_options = Selector.get_imputation_options()
         chosen_imputer_key = st.selectbox('Select imputation technique:', imputation_options.keys())
@@ -348,8 +321,8 @@ def build_sidebar():
     
     with st.sidebar:
         st.header("Customize Regression Analysis")
-        file_url = load_csv_file()
-        df = load_data(file_url)
+        dao.load_csv_file()
+        df = dao.load_data()
         cv = st.number_input("Enter cross validation value", min_value=0, max_value=10, value=2, step=1)
         if cv == 1:
             st.error('Cross validation value should not be 1.')
