@@ -16,6 +16,8 @@ from mlxtend.feature_selection import SequentialFeatureSelector as SFS
 from utils.selector import Selector
 from eda.load_data import DAO
 from eda.imputator import Imputator
+from ui.labels import UILabels
+from ui.component.selector import UISelector
 
 
 class LinearRegressionAnalysis:
@@ -23,35 +25,23 @@ class LinearRegressionAnalysis:
         Class to perform Linear Regression Analysis.
     '''
     def __init__(self):
-        st.title('Regression Analysis')
+        self.ui_labels = UILabels()
         self.dao = DAO()
         self.selector = Selector()
+        self.ui_selector = UISelector()
         self.imputator = Imputator(selector=self.selector, dao=self.dao)
+
+        self.ui_labels.set_app_title()
 
     def variables_selector(self, df):
         '''
             Define multi selector for  dependent and independent variables.
         '''
-        # Create 2 column layout
-        dependent_var_col, independent_var_col = st.columns(2)
-
-        # Dependent variable selector
-        chosen_y = dependent_var_col.selectbox('Select a dependent variable', df.columns)
-        if not chosen_y:
-            st.error('Please select a dependent variable.')
-            st.stop()
-        if not ptypes.is_numeric_dtype(df[chosen_y]):
-            st.error('Please select a numeric column for dependent variable.')
-            st.stop()
+        chosen_y, chosen_x, dependent_var_col, independent_var_col = self.ui_selector.variable_selector(df)
         
         y = df.loc[:, chosen_y]
         dependent_var_col.write(y.head())
 
-        # Independent variable selector
-        chosen_x = independent_var_col.multiselect('Select independent variables', df.drop(chosen_y, axis=1).columns)
-        if not chosen_x:
-            st.error('Please select at least one independent variable.')
-            st.stop()
         Z = df.loc[:, chosen_x]
         independent_var_col.write(Z.head())
 
@@ -72,7 +62,7 @@ class LinearRegressionAnalysis:
             df[col] = encoder.fit_transform(df[col])
         
         if not cat_cols.empty:
-            st.write('Label Encoded Features')
+            self.ui_labels.label_encoded()
             st.write(df.head())
         return df
 
