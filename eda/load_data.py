@@ -1,7 +1,7 @@
 import os
 import streamlit as st
 import pandas as pd
-from csv_validation import Validator
+from utils.validator import Validator
 
 class DAO:
   '''
