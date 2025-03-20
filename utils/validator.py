@@ -23,9 +23,9 @@ class Validator:
       if missing_values_df.shape[0] > 0:
         st.error('❌ There are missing values in the dataset.')
         st.dataframe(missing_values_df)
-        return True
+        return missing_values_df
 
-      return False
+      return None
 
     def has_duplicate_rows(self, df):
       '''

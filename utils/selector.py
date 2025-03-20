@@ -9,7 +9,7 @@ class Selector:
       self.sfs_metrics_options = None
       self.imputation_strategy = None
 
-    def get_lr_error_metrics_options():
+    def get_lr_error_metrics_options(self):
       '''
       Returns the list of error metrics for Linear Regression model.
       '''
@@ -21,7 +21,7 @@ class Selector:
       }
       return lr_error_metrics_options
 
-    def get_lg_error_metrics_options():
+    def get_lg_error_metrics_options(self):
       '''
       Returns the list of error metrics for Logistic Regression model.
       '''
@@ -33,7 +33,7 @@ class Selector:
       }
       return lg_error_metrics_options
 
-    def get_model_options():
+    def get_model_options(self):
       '''
       Returns the list of models.
       '''
@@ -44,7 +44,7 @@ class Selector:
       }
       return model
 
-    def get_sfs_metrics_options():
+    def get_sfs_metrics_options(self):
       '''
       Returns the list of metrics for Sequential Forward Selection.
       '''
@@ -56,7 +56,7 @@ class Selector:
       }
       return sfs_metrics_options
 
-    def get_imputation_options():
+    def get_imputation_options(self):
       '''
       Returns the list of imputation strategies.
       '''

@@ -15,6 +15,7 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 from mlxtend.feature_selection import SequentialFeatureSelector as SFS
 from utils.selector import Selector
 from eda.load_data import DAO
+from eda.imputator import Imputator
 
 
 class LinearRegressionAnalysis:
@@ -24,51 +25,8 @@ class LinearRegressionAnalysis:
     def __init__(self):
         st.title('Regression Analysis')
         self.dao = DAO()
-
-    def data_imputer(self, df):
-        '''
-            Perform data imputation on the missing values.
-        '''
-        if self.dao.validator.has_missing_values(df):
-            st.header('Data Imputation')
-            imputation_options = Selector.get_imputation_options()
-            chosen_imputer_key = st.selectbox('Select imputation technique:', imputation_options.keys())
-            chosen_imputer_value = imputation_options[chosen_imputer_key]
-            if not chosen_imputer_value:
-                st.error('Please select an imputation techinque.')
-                st.stop()
-
-            numeric_cols = df.select_dtypes(include=['number']).columns
-            object_cols = df.select_dtypes(include=['object']).columns
-            imputation_count = 0
-
-            if chosen_imputer_value == 'mean':
-                st.header('Imputing missing values with mean...')
-                for col in numeric_cols:
-                    df[col] = df[col].fillna(df[col].mean())
-                    imputation_count += 1
-            elif chosen_imputer_value == 'median':
-                st.header('Imputing missing values with median...')
-                for col in numeric_cols:
-                    df[col] = df[col].fillna(df[col].median())
-                    imputation_count += 1
-            elif chosen_imputer_value == 'mode':
-                st.header('Imputing missing values with mode...')
-                for col in df.columns:
-                    df[col] = df[col].fillna(df[col].mode()[0])
-                    imputation_count += 1
-
-            imputation_success, imputation_failure = st.columns(2)
-
-            with imputation_success:
-                st.write('Missing values imputed successfully for columns')
-                st.write(df[numeric_cols].head())
-
-            if len(df.columns) != imputation_count:
-                with imputation_failure:
-                    st.write('Missing values imputation failed for columns')
-                    st.write(df[object_cols].head())
-        return df
+        self.selector = Selector()
+        self.imputator = Imputator(selector=self.selector, dao=self.dao)
 
     def variables_selector(self, df):
         '''
@@ -125,7 +83,7 @@ class LinearRegressionAnalysis:
         features, model_algo_type, error_metric_type = st.columns(3)
         k = features.slider('Select number of features', min_value=0, max_value=X.shape[1], value=X.shape[1])
         
-        model_options = Selector.get_model_options()
+        model_options = self.selector.get_model_options()
         model_algo_key = model_algo_type.selectbox('Select an algorithm', model_options.keys())
         lr = LinearRegression() if model_options[model_algo_key] == 'lr' else LogisticRegression()
         if not lr:
@@ -137,10 +95,10 @@ class LinearRegressionAnalysis:
 
         error_metric_key = None
         if type(lr) == LinearRegression:
-            error_metric_options = Selector.get_lr_error_metrics_options()
+            error_metric_options = self.selector.get_lr_error_metrics_options()
             error_metric_key = error_metric_type.selectbox('Select Residual Metric', error_metric_options.keys())
         elif type(lr) == LogisticRegression:
-            error_metric_options = Selector.get_lg_error_metrics_options()
+            error_metric_options = self.selector.get_lg_error_metrics_options()
             error_metric_key = error_metric_type.selectbox('Select Residual Metric', error_metric_options.keys())
         
         if not error_metric_key:
@@ -306,7 +264,7 @@ class LinearRegressionAnalysis:
         '''
             Select the Sequential Forward Selection (SFS) metrics.
         '''
-        sfs_metrics_options = Selector.get_sfs_metrics_options()
+        sfs_metrics_options = self.selector.get_sfs_metrics_options()
         selected_sfs_metrics_key = st.selectbox('Choose SFS Metrics', sfs_metrics_options.keys())
         selected_sfs_metrics = sfs_metrics_options[selected_sfs_metrics_key]
 
@@ -344,7 +302,7 @@ def main():
     '''
     lra = LinearRegressionAnalysis()
     df, cv, selected_sfs_metric, plot_flags = lra.build_sidebar()
-    df = lra.data_imputer(df)
+    df = lra.imputator.data_imputer(df)
     y, X, df = lra.variables_selector(df)
     lr, error_metric, k = lra.feature_lr_selector(X)
     sfs_metrics = lra.compute_sfs(lr, cv, error_metric, k, X, y)
