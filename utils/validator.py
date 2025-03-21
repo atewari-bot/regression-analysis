@@ -47,6 +47,7 @@ class Validator:
         return True
       return False
 
+
 def find_missing_values_percentage(df):
   '''
       Find the percentage of missing values for the columns.

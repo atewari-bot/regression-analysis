@@ -1,4 +1,4 @@
-class Selector:
+class SelectorOptions:
     '''
     A class to select the model, error metrics, and other options.
     '''
