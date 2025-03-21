@@ -11,9 +11,10 @@ from utils.selector_options import SelectorOptions
 from eda.load_data import DAO
 from eda.imputator import Imputator
 from ui.labels import UILabels
-from ui.component.selector import UISelector
+from utils.validator import Validator
+from ui.components.selector import UISelector
 from ui.markdown.lr_md import LRMarkdown
-from ui.component.sidebar import SideBar
+from ui.components.sidebar import SideBar
 from ui.charts.residual_plot import ResidualPlot
 from ui.charts.line_chart import LineChart
 from ui.charts.scatter_plot import ScatterPlot
@@ -26,7 +27,8 @@ class LinearRegressionAnalysis:
     '''
     def __init__(self):
         self.ui_labels = UILabels()
-        self.dao = DAO()
+        self.validator = Validator()
+        self.dao = DAO(validator=self.validator)
         self.selector_options = SelectorOptions()
         self.ui_selector = UISelector(validator=self.dao.validator)
         self.encoder = LabelEncoder()

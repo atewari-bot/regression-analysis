@@ -1,15 +1,14 @@
 import os
 import streamlit as st
 import pandas as pd
-from utils.validator import Validator
 
 class DAO:
   '''
   Data Access Object
   '''
-  def __init__(self):
+  def __init__(self, validator=None):
     self.file_path = None
-    self.validator = Validator()
+    self.validator = validator
 
   def load_csv_file(self, selected_file):
     '''
